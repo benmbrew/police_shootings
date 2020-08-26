@@ -7,7 +7,7 @@ library(stringdist)
 library(RColorBrewer)
 library(scales)
 library(ggthemes)
-
+library(directlabels)
 
 # temp_data <- race
 get_city <- function(temp_data){
@@ -34,10 +34,22 @@ get_names <- function(temp_dat){
   return(temp_dat)
 }
 
+# temp_dat = dat 
+# var1 = 'threat_level' 
+# var2 = 'race' 
+# filter_data = TRUE
+# filter_levels_1 = 'attack'
+# filter_levels_2 = 'B|W|H'
+# get_percentage = FALSE 
+# remove_unknown = TRUE
+
 # plotting 2 variables both categorical
 plot_data_bar <- function(temp_dat, 
                           var1, 
                           var2, 
+                          filter_data,
+                          filter_levels_1,
+                          filter_levels_2,
                           get_percentage, 
                           remove_unknown){
   # get columns
@@ -45,6 +57,11 @@ plot_data_bar <- function(temp_dat,
   x_lab <- gsub('_', ' ', Hmisc::capitalize(var1))
   y_lab <- gsub('_', ' ', Hmisc::capitalize(var2))
   names(sub_dat) <- c('V1', 'V2')
+  
+  if(filter_data){
+    sub_dat <- sub_dat %>% filter(grepl(filter_levels_1, V1))
+    sub_dat <- sub_dat %>% filter(grepl(filter_levels_2, V2))
+  }
   
   grouped_dat <- sub_dat %>% 
     filter(!is.na(V2)) %>% 
@@ -62,7 +79,7 @@ plot_data_bar <- function(temp_dat,
   }
   
   # make color vector
-  V2_length <- length(unique(grouped_dat$V2)) + 1
+  V2_length <- length(unique(grouped_dat$V2)) + 2
   col_vec <- brewer.pal(n = V2_length, name = 'Paired')
   
   # recode V1 and V2 for plot
@@ -171,6 +188,182 @@ plot_age <- function(temp_dat,
   }
   
   return(base_plot)
+  
+}
+
+
+# function for time plotting 
+plot_time <- function(temp_dat, 
+                      var1, 
+                      var2, 
+                      filter_data,
+                      filter_levels_1, 
+                      filter_levels_2, 
+                      remove_unknown){
+  # get columns
+  
+  if(is.null(var2)){
+    sub_dat <- temp_dat[, c('date',var1)]
+    x_lab <- 'Date'
+    y_lab <- gsub('_', ' ', Hmisc::capitalize(var1))
+    names(sub_dat) <- c('V1', 'V2')
+    
+    grouped_dat <- sub_dat %>% 
+      filter(!is.na(V1)) %>% 
+      filter(!is.na(V2)) %>% 
+      group_by(V1, V2) %>% summarise(counts = n()) %>%
+      group_by(V2) %>% mutate(V3 = cumsum(counts))
+    grouped_dat$counts <- NULL
+    
+    if(remove_unknown){
+      grouped_dat <- grouped_dat %>% filter(V2 != 'unknown')
+    }
+    
+    g <- ggplot(grouped_dat, aes(V1, V3, group = V2, color = V2)) + 
+      geom_line(size = 1) +
+      xlim(c(min(grouped_dat$V1), (max(grouped_dat$V1) + 200))) +
+      labs(x = x_lab,
+           y = y_lab) +
+      scale_fill_manual(name = '',
+                        values = col_vec) +
+      geom_dl(data = grouped_dat,
+              aes(label = Hmisc::capitalize(gsub('_', ' ', V2))), 
+              method = list(dl.combine("last.points"), cex = 0.7), 
+              alpha = 1, color = 'black') +
+      theme_update() + 
+      theme(legend.position = 'none')
+    
+  } else {
+    sub_dat <- temp_dat[, c('date',var1, var2)]
+    x_lab <- 'Date'
+    y_lab <- 'Counts'
+    names(sub_dat) <- c('V1', 'V2', 'V3')
+    
+    if(filter_data){
+      sub_dat <- sub_dat %>% filter(grepl(filter_levels_1, V2))
+      sub_dat <- sub_dat %>% filter(grepl(filter_levels_2, V3))
+    }
+    
+    
+    grouped_dat <- sub_dat %>% 
+      filter(!is.na(V1)) %>% 
+      filter(!is.na(V2)) %>% 
+      filter(!is.na(V3)) %>% 
+      group_by(V1,V2, V3) %>% 
+      summarise(var_counts = n()) %>% 
+      group_by(V2,V3) %>% 
+      mutate(V4 = cumsum(var_counts))
+    grouped_dat$var_counts <- NULL
+    
+    if(remove_unknown){
+      grouped_dat <- grouped_dat %>% filter(V2 != 'unknown')
+      grouped_dat <- grouped_dat %>% filter(V3 != 'unknown')
+      
+    }
+    
+    # make color vector
+    col_length <- length(unique(interaction(grouped_dat$V2, grouped_dat$V3))) 
+    col_vec <- brewer.pal(n = col_length, name = 'Spectral')
+    
+    g <- ggplot(grouped_dat, aes(V1, V4, color = interaction(V2, V3))) +
+      geom_line(size = 1) +
+      xlim(c(min(grouped_dat$V1), (max(grouped_dat$V1) + 200))) +
+      labs(x = x_lab,
+           y = y_lab) +
+      scale_fill_manual(name = '',
+                        values = col_vec) +
+      geom_dl(data = grouped_dat,
+              aes(label = paste0(gsub('_', ' ', V2),'\n', gsub('_', ' ', V3))), 
+              method = list(dl.combine("last.points"), cex = 0.7), 
+              alpha = 1, color = 'black') +
+      theme_update() + 
+      theme(legend.position = 'none')
+    
+  }
+  
+  return(g)
+  
+}
+
+
+plot_demo <- function(temp_dat,
+                      var1,
+                      var2, 
+                      var3,
+                      remove_unknown,
+                      filter_levels_1,
+                      filter_levels_2) {
+  # get columns
+  if(is.null(var2)){
+    sub_dat <- temp_dat[, c(var1, var3)]
+    x_lab <- Hmisc::capitalize(var1)
+    y_lab <- Hmisc::capitalize(gsub('_', ' ', var3))
+    names(sub_dat) <- c('V1', 'V2')
+    
+    sub_dat <- sub_dat %>% filter(grepl(filter_levels_1, V1))
+    sub_dat$V2 <- as.numeric(sub_dat$V2)
+    
+    grouped_dat <- sub_dat %>% 
+      filter(!is.na(V1)) %>% 
+      group_by(V1) %>% 
+      summarise(var_counts = n(),
+                mean_var = mean(V2, na.rm = TRUE)) 
+    
+    
+    if(remove_unknown){
+      grouped_dat <- grouped_dat %>% filter(V1 != 'unknown')
+      
+    }
+    
+    # make color vector
+    
+    g <- ggplot(grouped_dat, aes(V1, mean_var)) +
+      geom_bar(stat = 'identity') +
+      labs(x = x_lab,
+           y = y_lab) +
+      theme_update() 
+    
+  } else {
+    
+    sub_dat <- temp_dat[, c(var1, var2,var3)]
+    x_lab <- Hmisc::capitalize(var1)
+    y_lab <- Hmisc::capitalize(gsub('_', ' ', var2))
+    names(sub_dat) <- c('V1', 'V2', 'V3')
+    sub_dat$V3 <- as.numeric(sub_dat$V3)
+    
+    sub_dat <- sub_dat %>% filter(grepl(filter_levels_1, V1))
+    sub_dat <- sub_dat %>% filter(grepl(filter_levels_2, V2))
+    
+    grouped_dat <- sub_dat %>% 
+      filter(!is.na(V1)) %>% 
+      filter(!is.na(V2)) %>% 
+      filter(!is.na(V3)) %>% 
+      group_by(V1,V2) %>% 
+      summarise(V3 = mean(V3, na.rm = TRUE)) 
+    
+    
+    if(remove_unknown){
+      grouped_dat <- grouped_dat %>% filter(V1 != 'unknown')
+      grouped_dat <- grouped_dat %>% filter(V2 != 'unknown')
+      
+    }
+    
+    # make color vector
+    col_length <- length(unique(grouped_dat$V2)) + 2
+    col_vec <- brewer.pal(n = col_length, name = 'Spectral')
+    
+    g <- ggplot(grouped_dat, aes(V1, V3, fill = V2)) +
+      geom_bar(stat = 'identity') +
+      labs(x = x_lab,
+           y = y_lab) +
+      scale_fill_manual(name = Hmisc::capitalize(gsub('_', ' ', var2)),
+                        values = col_vec) +
+      theme_update() 
+    
+    
+  }
+  
+  return(g)
   
 }
 

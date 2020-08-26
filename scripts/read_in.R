@@ -134,3 +134,4 @@ rm(demo_all)
 # save data objects
 saveRDS(dat, '../data/cleaned_shootings_data.rda')
 saveRDS(dat_demo, '../data/cleaned_shootings_data_with_demographics.rda')
+
