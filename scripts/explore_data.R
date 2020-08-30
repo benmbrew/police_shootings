@@ -24,6 +24,7 @@ plot_time(dat_demo,
           filter_data = TRUE,
           filter_levels_1 = 'B|W',
           filter_levels_2 = 'Not fleeing|Foot|Other')
+     
 
 # age plots
 plot_age(dat, var1 = 'Weapon', var2 = 'race', remove_unknown = TRUE)
@@ -71,7 +72,10 @@ temp <- data.frame(race = c('W', 'B', 'H', 'A'),
 all_dat <- dat_demo %>% 
   filter(!grepl('N|O|unknown', race)) %>% 
   group_by(race) %>%
+<<<<<<< HEAD
   filter(date > '2015-01-01') %>%
+=======
+>>>>>>> 6d66fffc03c4bfb20b365e451ce9a6546176d06f
   summarise(tot_shot = sum(manner_of_death == 'shot', na.rm = TRUE),
             tot_shot_taser = sum(manner_of_death == 'shot and Tasered', na.rm = TRUE),
             mean_age = mean(age, na.rm = TRUE),
@@ -102,6 +106,7 @@ all_dat <- dat_demo %>%
   
 # join temp with all_dat
 all_dat <- inner_join(all_dat, temp, by = 'race')
+<<<<<<< HEAD
 
 # get percents
 all_dat$per_shot <- round((all_dat$counts/sum(all_dat$counts))*100, 2)
@@ -158,3 +163,6 @@ dat <- dat_demo %>%
 
 ggplot(dat, aes(date, cum_deaths, color = race)) +
   geom_line()
+=======
+all_dat$per_shot <- round((all_dat$counts/all_dat$per_pop)*100, 2)
+>>>>>>> 6d66fffc03c4bfb20b365e451ce9a6546176d06f

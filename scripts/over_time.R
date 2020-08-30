@@ -39,11 +39,10 @@ dat$month_year <- format(as.Date(dat$date, format="%Y-%m-%d"),"%m-%Y")
 dat <- dat %>% filter(gender == 'Male')
 dat <- dat %>% filter(!is.na(age))
 
-# create age groups 
 
 
 
-# make function that takes race and other variables, 
+# make function that takes race and other variables,and age range.
 # plots percent rolling avg over time and aggregated 
 
 

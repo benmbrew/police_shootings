@@ -33,6 +33,15 @@ get_names <- function(temp_dat){
   rm(first_name, last_name)
   return(temp_dat)
 }
+# 
+# temp_dat = dat 
+# var1 = 'threat_level' 
+# var2 = 'race' 
+# filter_data = TRUE
+# filter_levels_1 = 'attack'
+# filter_levels_2 = 'B|W|H'
+# get_percentage = FALSE 
+# remove_unknown = TRUE
 
 # temp_dat = dat 
 # var1 = 'threat_level' 
